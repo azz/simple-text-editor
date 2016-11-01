@@ -1,8 +1,9 @@
 {
   "name": "simple-text-editor",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "(really) simple text editor",
   "main": "editor.js",
+  "bin" : "./editor.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
