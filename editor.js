@@ -67,15 +67,14 @@ const Ctrl = {
     ESC: '\u001B', // Escape
 }
 
-const ansi = (...args) => `${Ctrl.ESC}[${String.raw(...args)}`
+const csi = (...args) => `${Ctrl.ESC}[${String.raw(...args)}`
 const Ansi = {
-    eraseDisplay: ansi`2J`,
-    cursorUp: ansi`1A`,
-    cursorDown: ansi`1B`,
-    cursorForward: ansi`1C`,
-    cursorBack: ansi`1D`,
-
-    cursorPosition: (row=0, col=0) => ansi`${row + 1};${col + 1}H`,
+    eraseDisplay: csi`2J`,
+    cursorUp: csi`1A`,
+    cursorDown: csi`1B`,
+    cursorForward: csi`1C`,
+    cursorBack: csi`1D`,
+    cursorPosition: (row=0, col=0) => csi`${row+1};${col+1}H`,
 }
 
 if (require.main === module) {
