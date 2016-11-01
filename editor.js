@@ -87,7 +87,7 @@ if (require.main === module) {
         : State(Buffer.load(argv[2]), Cursor.origin())
     render(state)
     stdin.on('data', char => {
-        state = reduce(state, char)
+        state = clamp(reduce(state, char))
         render(state)
     })
 }
@@ -129,10 +129,19 @@ if (process.argv.length > 2)
     }
 
 function reduce({ buffer, cursor }, char) {
-    const next = char in ops
-        ? ops[char]({ buffer, cursor }, char)
-        : State(buffer.insert(cursor.row, cursor.col, char), cursor.right)
-    return clamp(next)
+    let next
+    if (char in ops)
+        return ops[char]({ buffer, cursor }, char)
+    if (/[\x00-\x1F]/.test(char))
+        return State(
+            buffer.insert(cursor.row, cursor.col, name(char)),
+            cursor.right.right
+        )
+    return State(buffer.insert(cursor.row, cursor.col, char), cursor.right)
+}
+
+function name(char) {
+    return '^' + String.fromCharCode('A'.charCodeAt(0) -1 + char.charCodeAt(0))
 }
 
 function clamp({ buffer, cursor }) {
