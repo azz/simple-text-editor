@@ -11,7 +11,7 @@ Based on Gary Bernhardt's [stream](https://www.twitch.tv/gary_bernhardt/v/907965
 $ npm i -g simple-text-editor
 ```
 
-## Start 
+## Start
 
 Start (new file):
 
@@ -29,12 +29,11 @@ $ simple-text-editor path/to/file
 
 | **Command** | **Description**
 |------------:|-----------------
-| `^B`        | Backward
-| `^F`        | Forward
-| `^N`        | Next Line
-| `^P`        | Prev Line
+| `^B` or `←` | Backward
+| `^F` or `→` | Forward
+| `^N` or `↓` | Next Line
+| `^P` or `↑` | Prev Line
 | `^A`        | Start of Line
 | `^E`        | End of Line
 | `^C`        | Exit
 | `^S`        | Save (only when a file is loaded)
-

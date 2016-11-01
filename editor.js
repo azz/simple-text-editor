@@ -75,10 +75,10 @@ const Ctrl = {
 const csi = (...args) => `${Ctrl.ESC}[${String.raw(...args)}`
 const Ansi = {
     eraseDisplay: csi`2J`,
-    cursorUp: csi`1A`,
-    cursorDown: csi`1B`,
-    cursorForward: csi`1C`,
-    cursorBack: csi`1D`,
+    cursorUp: csi`A`,
+    cursorDown: csi`B`,
+    cursorForward: csi`C`,
+    cursorBack: csi`D`,
     cursorPosition: (row=0, col=0) => csi`${row+1};${col+1}H`,
 }
 
@@ -111,7 +111,6 @@ const ops = {
 
     [Ctrl.F]: ({ buffer, cursor }) => State(buffer, cursor.right),
     [Ctrl.B]: ({ buffer, cursor }) => State(buffer, cursor.left),
-
     [Ctrl.N]: ({ buffer, cursor }) => State(buffer, cursor.down),
     [Ctrl.P]: ({ buffer, cursor }) => State(buffer, cursor.up),
 
@@ -125,7 +124,6 @@ const ops = {
         }
         return State(buffer.delete(cursor.row, cursor.col - 1), cursor.left)
     },
-
     [Ctrl.M]: ({ buffer, cursor }) => State(
         buffer.newline(cursor.row, cursor.col), cursor.down.atCol(0)
     ),
@@ -136,6 +134,17 @@ if (process.argv.length > 2)
         Buffer.persist(buffer, process.argv[2])
         return State(buffer, cursor)
     }
+
+const aliases = [
+    [Ansi.cursorBack, Ctrl.B],
+    [Ansi.cursorForward, Ctrl.F],
+    [Ansi.cursorDown, Ctrl.N],
+    [Ansi.cursorUp, Ctrl.P],
+]
+
+for (const [alias, actual] of aliases) {
+    ops[alias] = ops[actual]
+}
 
 /** (state, char) -> state */
 function reduce({ buffer, cursor }, char) {
