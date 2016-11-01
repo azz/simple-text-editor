@@ -16,14 +16,16 @@ class Buffer extends Array {
 
     insert(row, col, sequence) {
         const line = this.line(row)
-        return this.splice(row, 1, line.substring(0, col) + sequence + line.substring(col))
+        const newLine = line.substring(0, col) + sequence + line.substring(col)
+        return this.splice(row, 1, newLine)
     }
     delete(row, col, count=1) {
         const line = this.line(row)
-        return this.splice(row, 1, line.substring(0, col) + line.substring(col + count))
+        return this.splice(row, 1, line.slice(0, col) + line.slice(col + count))
     }
     joinRows(firstRow) {
-        return this.splice(firstRow, 2, this.line(firstRow) + this.line(firstRow + 1))
+        const newLine = this.line(firstRow) + this.line(firstRow + 1)
+        return this.splice(firstRow, 2, newLine)
     }
     newline(row, col) {
         const line = this.line(row)
@@ -69,6 +71,7 @@ const Ctrl = {
     ESC: '\u001B', // Escape
 }
 
+// Control Sequence Introducers!
 const csi = (...args) => `${Ctrl.ESC}[${String.raw(...args)}`
 const Ansi = {
     eraseDisplay: csi`2J`,
@@ -81,6 +84,7 @@ const Ansi = {
 
 if (require.main === module) {
     const {stdin, argv} = process
+    // This will likely not work on non-TTYs such as Cygwin.
     stdin.setRawMode(true)
     stdin.setEncoding('utf8')
     stdin.resume()
@@ -100,10 +104,10 @@ const ops = {
         process.exit(0)
     },
 
-    [Ctrl.A]: ({ buffer, cursor }) =>
-        State(buffer, cursor.atCol(0)),
-    [Ctrl.E]: ({ buffer, cursor }) =>
-        State(buffer, cursor.atCol(buffer.line(cursor.row).length)),
+    [Ctrl.A]: ({ buffer, cursor }) => State(buffer, cursor.atCol(0)),
+    [Ctrl.E]: ({ buffer, cursor }) => State(
+        buffer, cursor.atCol(buffer.line(cursor.row).length)
+    ),
 
     [Ctrl.F]: ({ buffer, cursor }) => State(buffer, cursor.right),
     [Ctrl.B]: ({ buffer, cursor }) => State(buffer, cursor.left),
@@ -114,14 +118,17 @@ const ops = {
     [Ctrl.H]: ({ buffer, cursor }) => {
         if (cursor.col === 0 && cursor.row > 0) {
             const prevLineLength = buffer.line(cursor.row - 1).length
-            return State(buffer.joinRows(cursor.row - 1), cursor.up.atCol(prevLineLength))
-        } else {
-            return State(buffer.delete(cursor.row, cursor.col - 1), cursor.left)
+            return State(
+                buffer.joinRows(cursor.row - 1),
+                cursor.up.atCol(prevLineLength)
+            )
         }
+        return State(buffer.delete(cursor.row, cursor.col - 1), cursor.left)
     },
 
-    [Ctrl.M]: ({ buffer, cursor }) =>
-        State(buffer.newline(cursor.row, cursor.col), cursor.down.atCol(0)),
+    [Ctrl.M]: ({ buffer, cursor }) => State(
+        buffer.newline(cursor.row, cursor.col), cursor.down.atCol(0)
+    ),
 }
 
 if (process.argv.length > 2)
@@ -130,22 +137,25 @@ if (process.argv.length > 2)
         return State(buffer, cursor)
     }
 
+/** (state, char) -> state */
 function reduce({ buffer, cursor }, char) {
-    let next
-    if (char in ops)
+    if (char in ops) // Operator
         return ops[char]({ buffer, cursor }, char)
-    if (/[\x00-\x1F]/.test(char))
+    if (/[\x00-\x1F]/.test(char)) // Non-printable character
         return State(
             buffer.insert(cursor.row, cursor.col, name(char)),
             cursor.right.right
         )
+    // Printable character
     return State(buffer.insert(cursor.row, cursor.col, char), cursor.right)
 }
 
+/** Render an unsupported control code, such as control-D, as '^D' */
 function name(char) {
-    return '^' + String.fromCharCode('A'.charCodeAt(0) -1 + char.charCodeAt(0))
+    return '^' + String.fromCharCode('A'.charCodeAt(0) - 1 + char.charCodeAt(0))
 }
 
+/** Ensure that the cursor does not fall outside of the buffer */
 function clamp({ buffer, cursor }) {
     return State(buffer, new Cursor(
         Math.max(0, Math.min(cursor.row, buffer.length - 1)),
@@ -153,6 +163,11 @@ function clamp({ buffer, cursor }) {
     ))
 }
 
+/**
+ * Render current state to process.stdout as a TTY.
+ * Currently all state changes cause an entire re-render.
+ * There are heaps of ways this could be optimized.
+ */
 function render({ buffer, cursor }) {
     const {stdout} = process
     stdout.write(Ansi.eraseDisplay)
